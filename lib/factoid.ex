@@ -42,14 +42,43 @@ defmodule Factoid do
         last_name: "Doe",
         email_address: "jane-#{unique_integer()}@example.com",
       }
-      |> Map.merge(attrs)
+      |> struct!(attrs)
     end
 
     def build(:user_avatar, attrs) do
       %UserAvatar{
         user: build(:user)
       }
-      |> Map.merge(attrs)
+      |> struct!(attrs)
+    end
+  end
+  ```
+
+  If you prefer, you can also just implement `build/1` and `Factoid` will
+  automatically generate the `build/2` function.
+
+  ```elixir
+  def App.Factory do
+    @behaviour Factoid
+
+    use Factoid, repo: App.Repo
+
+    alias App.Schemas.User
+    alias App.Schemas.UserAvatar
+
+    @impl Factoid
+    def build(:user) do
+      %User{
+        first_name: "Jane",
+        last_name: "Doe",
+        email_address: "jane-#{unique_integer()}@example.com",
+      }
+    end
+
+    def build(:user_avatar) do
+      %UserAvatar{
+        user: build(:user)
+      }
     end
   end
   ```
@@ -119,6 +148,14 @@ defmodule Factoid do
       @type attrs :: map() | keyword()
 
       @doc """
+      Builds a record with attributes.
+      """
+      @spec build(factory_name(), attrs()) :: record()
+      def build(factory_name, attrs \\ %{}) do
+        factory_name |> then(&build(@repo, &1)) |> struct!(attrs)
+      end
+
+      @doc """
       Inserts a record with attributes.
       """
       @spec insert(factory_name(), attrs()) :: record()
@@ -135,6 +172,8 @@ defmodule Factoid do
       Generates a UUID.
       """
       def unique_uuid, do: Factoid.unique_uuid()
+
+      defoverridable build: 2
     end
   end
 
